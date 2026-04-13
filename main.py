@@ -2,10 +2,30 @@ import os
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.core.config import settings
-from app.api.v1.router import api_router
-from app.db.session import engine
-from app.db import base  # noqa: F401 — ensures all models are registered
+
+print("Starting COMODO MASTER BACKEND...")
+
+try:
+    from app.core.config import settings
+    print("✓ Config loaded")
+except Exception as e:
+    print(f"✗ Config load failed: {e}")
+    raise
+
+try:
+    from app.api.v1.router import api_router
+    print("✓ API router loaded")
+except Exception as e:
+    print(f"✗ API router load failed: {e}")
+    raise
+
+try:
+    from app.db.session import engine
+    from app.db import base  # noqa: F401 — ensures all models are registered
+    print("✓ DB models loaded")
+except Exception as e:
+    print(f"✗ DB load failed: {e}")
+    raise
 
 app = FastAPI(
     title="COMODO MASTER BACKEND",
@@ -26,10 +46,17 @@ app.add_middleware(
 app.include_router(api_router, prefix="/api/v1")
 
 
+@app.get("/", tags=["Root"])
+def root():
+    return {"status": "running", "service": "COMODO MASTER BACKEND", "docs": "/api/docs"}
+
+
 @app.get("/health", tags=["Health"])
 def health_check():
     return {"status": "ok", "service": "COMODO MASTER BACKEND"}
 
+
+print(f"ROUTES LOADED: {[r.path for r in app.routes]}")
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
