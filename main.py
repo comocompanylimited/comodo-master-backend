@@ -1,3 +1,5 @@
+import os
+import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
@@ -27,3 +29,8 @@ app.include_router(api_router, prefix="/api/v1")
 @app.get("/health", tags=["Health"])
 def health_check():
     return {"status": "ok", "service": "COMODO MASTER BACKEND"}
+
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
