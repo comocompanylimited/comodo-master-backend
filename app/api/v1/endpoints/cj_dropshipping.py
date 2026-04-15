@@ -10,6 +10,22 @@ from app.models.business import Business
 router = APIRouter()
 
 
+@router.get("/products")
+def verify_products(db: Session = Depends(get_db)):
+    products = db.query(Product).limit(50).all()
+    return [
+        {
+            "id": p.id,
+            "name": p.name,
+            "slug": p.slug,
+            "price": float(p.price),
+            "source": p.source,
+            "commerce_store_id": p.commerce_store_id,
+        }
+        for p in products
+    ]
+
+
 @router.get("/commerce-stores")
 def list_commerce_stores(db: Session = Depends(get_db)):
     stores = db.query(CommerceStore).all()
