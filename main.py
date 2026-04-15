@@ -22,7 +22,9 @@ except Exception as e:
 try:
     from app.db.session import engine
     from app.db import base  # noqa: F401 — ensures all models are registered
-    print("✓ DB models loaded")
+    from app.db.base_class import Base
+    Base.metadata.create_all(bind=engine)
+    print("✓ DB models loaded and tables created")
 except Exception as e:
     print(f"✗ DB load failed: {e}")
     raise
