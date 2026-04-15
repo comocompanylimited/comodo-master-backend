@@ -13,6 +13,7 @@ from app.api.v1.endpoints import (
     discounts,
     imports,
     dashboard,
+    cj_dropshipping,
 )
 
 api_router = APIRouter()
@@ -30,3 +31,4 @@ api_router.include_router(orders.router, prefix="/orders", tags=["Orders"])
 api_router.include_router(discounts.router, prefix="/discounts", tags=["Discounts"])
 api_router.include_router(imports.router, prefix="/imports", tags=["Imports"])
 api_router.include_router(dashboard.router, prefix="/dashboard", tags=["Dashboard"])
+api_router.include_router(cj_dropshipping.router, prefix="/cj", tags=["CJ Dropshipping"])
