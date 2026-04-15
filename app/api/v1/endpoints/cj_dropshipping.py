@@ -81,15 +81,19 @@ def import_cj_products(
                 slug = f"{base_slug}-{i}"
                 i += 1
 
-            try:
-                price = float(p.get("sellPrice") or 0)
-            except (TypeError, ValueError):
-                price = 0.0
+            def _to_float(val, default=0.0):
+                try:
+                    if val is None:
+                        return default
+                    s = str(val).strip()
+                    # handle ranges like "3.34 -- 11.59"
+                    s = re.split(r"\s*[-–]+\s*", s)[0].strip()
+                    return float(s)
+                except (TypeError, ValueError):
+                    return default
 
-            try:
-                weight = float(p.get("productWeight") or 0)
-            except (TypeError, ValueError):
-                weight = 0.0
+            price = _to_float(p.get("sellPrice"))
+            weight = _to_float(p.get("productWeight"))
 
             description = p.get("remark") or None
             if description:
