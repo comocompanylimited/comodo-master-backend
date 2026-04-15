@@ -24,6 +24,8 @@ class Product(Base):
     low_stock_threshold = Column(Integer, nullable=True)
     status = Column(String(50), default="active", nullable=False, index=True)
     visibility = Column(String(50), default="visible", nullable=False)
+    weight = Column(Numeric(10, 4), nullable=True)
+    source = Column(String(50), nullable=True, index=True)
     featured = Column(Boolean, default=False, nullable=False, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)

@@ -56,43 +56,61 @@ def import_cj_products(
     data = response.json()
     products = (data.get("data") or {}).get("list") or []
 
-    imported = 0
+    imported_count = 0
+    skipped_count = 0
+    failed_count = 0
+
     for p in products:
-        sku = p.get("productSku") or ""
-        if not sku:
-            continue
-        if db.query(Product).filter(Product.sku == sku).first():
-            continue
+        try:
+            sku = p.get("productSku") or ""
+            if not sku:
+                skipped_count += 1
+                continue
 
-        name = p.get("productNameEn") or p.get("productName") or sku
-        slug = _slugify(name)
+            if db.query(Product).filter(Product.sku == sku).first():
+                skipped_count += 1
+                continue
 
-        # ensure slug uniqueness
-        base_slug = slug
-        count = 1
-        while db.query(Product).filter(Product.slug == slug).first():
-            slug = f"{base_slug}-{count}"
-            count += 1
+            name = p.get("productNameEn") or p.get("productName") or sku
+            slug = _slugify(name)
+            base_slug = slug
+            i = 1
+            while db.query(Product).filter(Product.slug == slug).first():
+                slug = f"{base_slug}-{i}"
+                i += 1
 
-        price = p.get("sellPrice") or 0
+            price = p.get("sellPrice") or 0
+            weight_raw = p.get("productWeight")
+            weight = float(weight_raw) if weight_raw is not None else None
 
-        product = Product(
-            commerce_store_id=commerce_store_id,
-            name=name,
-            slug=slug,
-            sku=sku,
-            price=price,
-            description=p.get("remark") or None,
-            status="active",
-        )
-        db.add(product)
-        db.flush()
+            product = Product(
+                commerce_store_id=commerce_store_id,
+                name=name,
+                slug=slug,
+                sku=sku,
+                price=price,
+                description=p.get("remark") or None,
+                short_description=p.get("categoryName") or None,
+                weight=weight,
+                source="cj",
+                status="active",
+            )
+            db.add(product)
+            db.flush()
 
-        image_url = p.get("productImage")
-        if image_url:
-            db.add(ProductImage(product_id=product.id, image_url=image_url, sort_order=0))
+            image_url = p.get("productImage")
+            if image_url:
+                db.add(ProductImage(product_id=product.id, image_url=image_url, sort_order=0))
 
-        imported += 1
+            imported_count += 1
+
+        except Exception:
+            db.rollback()
+            failed_count += 1
 
     db.commit()
-    return {"imported": imported}
+    return {
+        "imported_count": imported_count,
+        "skipped_count": skipped_count,
+        "failed_count": failed_count,
+    }

@@ -13,5 +13,4 @@ env/
 .idea/
 .vscode/
 *.log
-alembic/versions/*.py
-!alembic/versions/.gitkeep
+!alembic/versions/*.py
