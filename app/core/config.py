@@ -10,12 +10,15 @@ class Settings(BaseSettings):
 
     DATABASE_URL: str = "postgresql://user:password@localhost:5432/comodo_master"
 
-    # Zeabur individual Postgres vars
+    # Zeabur exposes these — note POSTGRES_USERNAME not POSTGRES_USER
+    POSTGRES_URI: str = ""
     POSTGRES_HOST: str = ""
     POSTGRES_PORT: str = "5432"
-    POSTGRES_USER: str = ""
+    POSTGRES_USERNAME: str = ""
+    POSTGRES_USER: str = ""        # fallback alias
     POSTGRES_PASSWORD: str = ""
     POSTGRES_DB: str = ""
+    POSTGRES_DATABASE: str = ""    # alternate Zeabur name
 
     SECRET_KEY: str = "change-this-secret-key"
     ALGORITHM: str = "HS256"
@@ -26,11 +29,17 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def assemble_database_url(self):
-        # If Zeabur provides individual vars, build DATABASE_URL from them
-        if self.POSTGRES_HOST and self.POSTGRES_USER and self.POSTGRES_DB:
+        # 1. Use POSTGRES_URI if Zeabur provides it directly
+        if self.POSTGRES_URI:
+            self.DATABASE_URL = self.POSTGRES_URI
+            return self
+        # 2. Build from individual vars (Zeabur uses POSTGRES_USERNAME)
+        user = self.POSTGRES_USERNAME or self.POSTGRES_USER
+        db = self.POSTGRES_DB or self.POSTGRES_DATABASE
+        if self.POSTGRES_HOST and user and db:
             self.DATABASE_URL = (
-                f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}"
-                f"@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+                f"postgresql://{user}:{self.POSTGRES_PASSWORD}"
+                f"@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{db}"
             )
         return self
 
@@ -48,4 +57,4 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
-print(f"DATABASE_URL host: {settings.DATABASE_URL.split('@')[-1] if '@' in settings.DATABASE_URL else 'unknown'}")
+print(f"[DB] connecting to: {settings.DATABASE_URL.split('@')[-1] if '@' in settings.DATABASE_URL else settings.DATABASE_URL}")
