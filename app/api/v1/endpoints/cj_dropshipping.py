@@ -4,8 +4,32 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from app.core.deps import get_db
 from app.models.product import Product, ProductImage
+from app.models.commerce_store import CommerceStore
+from app.models.business import Business
 
 router = APIRouter()
+
+
+@router.get("/commerce-stores")
+def list_commerce_stores(db: Session = Depends(get_db)):
+    stores = db.query(CommerceStore).all()
+    created = None
+    if not stores:
+        business = db.query(Business).first()
+        if not business:
+            business = Business(name="Covora", status="active")
+            db.add(business)
+            db.flush()
+        store = CommerceStore(business_id=business.id, name="Covora Store", status="active")
+        db.add(store)
+        db.commit()
+        db.refresh(store)
+        stores = [store]
+        created = store.id
+    return {
+        "stores": [{"id": s.id, "name": s.name, "business_id": s.business_id} for s in stores],
+        "created_store_id": created,
+    }
 
 
 def _slugify(text: str) -> str:
