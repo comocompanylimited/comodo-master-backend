@@ -17,7 +17,7 @@ def verify_products(db: Session = Depends(get_db)):
         {
             "id": p.id,
             "name": p.name,
-            "slug": p.slug,
+            "sku": p.sku,
             "price": float(p.price),
             "source": p.source,
             "commerce_store_id": p.commerce_store_id,
