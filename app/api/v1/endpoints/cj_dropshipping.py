@@ -59,29 +59,45 @@ def import_cj_products(
     imported_count = 0
     skipped_count = 0
     failed_count = 0
+    errors = []
 
     for p in products:
+        sku = str(p.get("productSku") or "").strip()
+        if not sku:
+            skipped_count += 1
+            continue
+
+        if db.query(Product).filter(Product.sku == sku).first():
+            skipped_count += 1
+            continue
+
         try:
-            sku = p.get("productSku") or ""
-            if not sku:
-                skipped_count += 1
-                continue
-
-            if db.query(Product).filter(Product.sku == sku).first():
-                skipped_count += 1
-                continue
-
-            name = p.get("productNameEn") or p.get("productName") or sku
-            slug = _slugify(name)
-            base_slug = slug
+            name = str(p.get("productNameEn") or p.get("productName") or sku).strip()[:499]
+            slug = _slugify(name) or sku.lower()
+            base_slug = slug[:490]
+            slug = base_slug
             i = 1
             while db.query(Product).filter(Product.slug == slug).first():
                 slug = f"{base_slug}-{i}"
                 i += 1
 
-            price = p.get("sellPrice") or 0
-            weight_raw = p.get("productWeight")
-            weight = float(weight_raw) if weight_raw is not None else None
+            try:
+                price = float(p.get("sellPrice") or 0)
+            except (TypeError, ValueError):
+                price = 0.0
+
+            try:
+                weight = float(p.get("productWeight") or 0)
+            except (TypeError, ValueError):
+                weight = 0.0
+
+            description = p.get("remark") or None
+            if description:
+                description = str(description)[:5000]
+
+            short_desc = p.get("categoryName") or None
+            if short_desc:
+                short_desc = str(short_desc)[:999]
 
             product = Product(
                 commerce_store_id=commerce_store_id,
@@ -89,28 +105,33 @@ def import_cj_products(
                 slug=slug,
                 sku=sku,
                 price=price,
-                description=p.get("remark") or None,
-                short_description=p.get("categoryName") or None,
+                description=description,
+                short_description=short_desc,
                 weight=weight,
                 source="cj",
                 status="active",
+                visibility="visible",
+                stock_quantity=0,
             )
             db.add(product)
             db.flush()
 
             image_url = p.get("productImage")
             if image_url:
-                db.add(ProductImage(product_id=product.id, image_url=image_url, sort_order=0))
+                db.add(ProductImage(product_id=product.id, image_url=str(image_url)[:999], sort_order=0))
 
+            db.commit()
             imported_count += 1
 
-        except Exception:
+        except Exception as e:
             db.rollback()
             failed_count += 1
+            if len(errors) < 5:
+                errors.append({"sku": sku, "error": str(e)})
 
-    db.commit()
     return {
         "imported_count": imported_count,
         "skipped_count": skipped_count,
         "failed_count": failed_count,
+        "errors": errors,
     }
