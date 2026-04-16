@@ -362,6 +362,41 @@ def clear_cj_products(
     return {"deleted_count": len(products)}
 
 
+# Keywords that definitively identify non-fashion / wrong-category products.
+# If a product name contains any of these we skip it at import time.
+_NON_FASHION_KEYWORDS = {
+    # Kitchen / Appliances
+    "air fryer", "fryer", "oven", "microwave", "blender", "toaster", "kettle",
+    "coffee maker", "rice cooker", "slow cooker", "pressure cooker", "food processor",
+    "mixer", "juicer", "dishwasher", "refrigerator", "washing machine",
+    # Electronics
+    "laptop", "computer", "tablet", "phone case", "charger", "cable", "earphone",
+    "earbuds", "headphone", "speaker", "bluetooth", "wifi", "router", "keyboard",
+    "mouse pad", "webcam", "projector", "drone", "camera lens",
+    # Tools / Hardware
+    "drill", "screwdriver", "wrench", "hammer", "saw", "toolbox", "ladder",
+    # Pets / Garden / Automotive
+    "dog", "cat food", "pet collar", "bird cage", "plant pot", "garden hose",
+    "car seat", "steering wheel", "car cover", "tyre", "tire",
+    # Health / Medical (non-beauty)
+    "blood pressure", "glucose meter", "thermometer", "pulse oximeter",
+    "nebulizer", "cpap", "wheelchair", "crutch", "hearing aid",
+    # Toys / Baby (non-fashion)
+    "lego", "toy car", "board game", "puzzle", "doll house", "baby formula",
+    "baby bottle", "breast pump", "stroller",
+    # Food / Supplements
+    "protein powder", "vitamin", "supplement", "collagen powder", "energy drink",
+    "snack", "chocolate", "coffee bean", "tea bag",
+    # Office / Stationery
+    "notebook", "pen ", "pencil", "stapler", "ink cartridge",
+}
+
+def _is_non_fashion(name: str) -> bool:
+    """Return True if the product name contains a non-fashion keyword."""
+    lower = name.lower()
+    return any(kw in lower for kw in _NON_FASHION_KEYWORDS)
+
+
 def _import_page_by_category_id(
     token: str,
     commerce_store_id: int,
@@ -402,6 +437,9 @@ def _import_page_by_category_id(
                 continue
 
             name = str(p.get("productNameEn") or p.get("productName") or sku).strip()[:499]
+            if _is_non_fashion(name):
+                skipped += 1
+                continue
             slug = _slugify(name) or sku.lower()
             base_slug = slug[:490]
             slug = base_slug
