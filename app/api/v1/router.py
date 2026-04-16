@@ -15,6 +15,7 @@ from app.api.v1.endpoints import (
     dashboard,
     cj_dropshipping,
     checkout,
+    public_products,
 )
 
 api_router = APIRouter()
@@ -34,3 +35,4 @@ api_router.include_router(imports.router, prefix="/imports", tags=["Imports"])
 api_router.include_router(dashboard.router, prefix="/dashboard", tags=["Dashboard"])
 api_router.include_router(cj_dropshipping.router, prefix="/cj", tags=["CJ Dropshipping"])
 api_router.include_router(checkout.router, prefix="/checkout", tags=["Checkout"])
+api_router.include_router(public_products.router, prefix="/store/products", tags=["Store"])
