@@ -14,30 +14,106 @@ def _apply_markup(raw_price: float) -> float:
     markup = 4.0 if raw_price < 20.0 else 2.4
     return round(raw_price * markup, 2)
 
-# Women's category IDs (second-level) from CJ Dropshipping taxonomy
-WOMENS_CATEGORY_IDS = [
-    # Women's Clothing
-    {"id": "422D4713-284A-49EE-8E53-680B7DCC72FE", "name": "Tops & Sets"},
-    {"id": "4257920C-6E7D-4B56-B031-0FC7AC6EF981", "name": "Bottoms"},
-    {"id": "773E0DBE-EEB6-40E9-984F-4ACFB0F58C9A", "name": "Outerwear & Jackets"},
-    {"id": "85CC5FF8-1CAC-4725-9F07-C778AB627E1B", "name": "Weddings & Events"},
-    {"id": "23DDAF61-8F6C-40F7-9F1F-DC9BB25450B6", "name": "Accessories"},
-    # Bags & Shoes
-    {"id": "E93B19EF-4E2C-4526-B2DF-BBFB6F2A80A7", "name": "Women's Shoes"},
-    {"id": "EC2E9303-E704-43F3-834A-A15EA653232E", "name": "Women's Luggage & Bags"},
-    # Jewelry & Watches
-    {"id": "123ACC01-7A11-4FB9-A532-338C0E7C04C5", "name": "Fashion Jewelry"},
-    {"id": "3E53507E-2EDB-49F1-8D0D-AD01225DAD8A", "name": "Fine Jewelry"},
-    {"id": "01114D8D-79BD-4AD9-85A0-72D1B050E3F8", "name": "Wedding & Engagement"},
-    {"id": "F1B0B876-9103-4DF0-9EA5-524094648BFD", "name": "Women's Watches"},
-    # Health, Beauty & Hair
-    {"id": "6289460B-5660-468A-AE43-3D619A05AAC2", "name": "Skin Care"},
-    {"id": "7EAF3E36-620B-4D78-818F-EE80955462A4", "name": "Makeup"},
-    {"id": "3B5BDD4D-34F4-4807-BC6C-943C2C1BCDB8", "name": "Hair & Accessories"},
-    {"id": "BF7AE6E9-E175-48FD-B1E3-3CF0126C90D0", "name": "Wigs & Extensions"},
-    {"id": "CE5FADBB-B432-40B9-8B20-200F6928762A", "name": "Beauty Tools"},
-    {"id": "01FD30A0-118E-4269-A6D2-8415E9C163BA", "name": "Nail Art & Tools"},
+# Leaf-level CJ category IDs mapped to exact Covora nav categories.
+# Using leaf IDs ensures only the correct product type is returned.
+WOMENS_LEAF_CATEGORIES = [
+    # ── Dresses ──────────────────────────────────────────────────────────────
+    {"id": "D2432903-0D4E-4787-886F-D3D9DA7890D9", "name": "Dresses"},   # Lady Dresses
+    {"id": "30E8E5CF-FBBA-48DA-84DD-E29D733089E0", "name": "Dresses"},   # Evening Dresses
+    {"id": "1AFD1C87-0BB1-4BAB-AA1A-D082E767811C", "name": "Dresses"},   # Cocktail Dresses
+    {"id": "88E43313-84C6-4550-B2C7-83A415AFA2DD", "name": "Dresses"},   # Prom Dresses
+    {"id": "935BCF1B-5D61-422F-8439-19179FE8B492", "name": "Dresses"},   # Wedding Dresses
+    {"id": "6C2516C4-F999-434C-B3F4-467FAFA13E2E", "name": "Dresses"},   # Bridesmaid Dresses
+    {"id": "7B69E34F-43A3-4143-A22D-30786EE97998", "name": "Dresses"},   # Jumpsuits
+    {"id": "7D611AF5-5135-4BBB-86F6-E80179F8E5B8", "name": "Dresses"},   # Rompers
+    # ── Tops & Blouses ───────────────────────────────────────────────────────
+    {"id": "5A3E7341-18B5-4C61-BFCD-8965B3479A9A", "name": "Tops & Blouses"},  # Blouses & Shirts
+    {"id": "1357251872037146624",                   "name": "Tops & Blouses"},  # Ladies Short Sleeve
+    {"id": "2409230541301627300",                   "name": "Tops & Blouses"},  # Women's Camis
+    {"id": "2502190153271613100",                   "name": "Tops & Blouses"},  # Short-Sleeved Shirts
+    {"id": "2502190153531612600",                   "name": "Tops & Blouses"},  # Long-Sleeved Shirts
+    {"id": "2502140253001614100",                   "name": "Tops & Blouses"},  # Women's Vests
+    # ── Knitwear ─────────────────────────────────────────────────────────────
+    {"id": "DE9C662C-3F48-4855-87E7-E18733EFF6D2", "name": "Knitwear"},  # Sweaters
+    # ── Co-ords & Sets ───────────────────────────────────────────────────────
+    {"id": "ECDBD4C4-7467-4831-9F55-740E3C7968BE", "name": "Co-ords"},   # Suits & Sets
+    # ── Outerwear ────────────────────────────────────────────────────────────
+    {"id": "07398ADB-FC5E-4CC4-AD00-EB230E779E88", "name": "Outerwear"}, # Blazers
+    {"id": "4CF7E664-A644-4B96-951B-B76FA973320A", "name": "Outerwear"}, # Basic Jackets
+    {"id": "441DA450-5E5F-41DF-8911-3BAE883C30E8", "name": "Outerwear"}, # Trench Coats
+    {"id": "D680731F-1AE8-46E4-9BE7-E98C39F07E1E", "name": "Outerwear"}, # Leather & Suede
+    {"id": "1366AF62-E9CB-4834-9EC9-6126C077B5E0", "name": "Outerwear"}, # Wool & Blend
+    {"id": "2409230541081607100",                   "name": "Outerwear"}, # Padded Jackets
+    # ── Loungewear ───────────────────────────────────────────────────────────
+    {"id": "5E656DFB-9BAE-44DD-A755-40AFA2E0E686", "name": "Loungewear"}, # Hoodies & Sweatshirts
+    # ── Bottoms ──────────────────────────────────────────────────────────────
+    {"id": "3B8946E7-B608-4DAB-B2F0-C425B7875035", "name": "Bottoms"},   # Skirts
+    {"id": "9694B484-7EA0-4D71-993B-9CF02D24B271", "name": "Bottoms"},   # Pants & Capris
+    {"id": "A7DE167B-ECFF-481E-A52A-2E7937BFAA95", "name": "Bottoms"},   # Wide Leg Pants
+    {"id": "396E962A-5632-49C2-B9BF-9529DE3B9141", "name": "Bottoms"},   # Leggings
+    {"id": "8A22518D-0C6F-430D-8CD9-7E043062A279", "name": "Bottoms"},   # Shorts
+    # ── Denim ────────────────────────────────────────────────────────────────
+    {"id": "63584B9B-5275-4268-8BEA-7D3C7A7BB925", "name": "Denim"},     # Woman Jeans
+    # ── Heels ────────────────────────────────────────────────────────────────
+    {"id": "638284D0-3651-4FC9-9F25-B0A0BA323D83", "name": "Heels"},     # Pumps
+    # ── Flats ────────────────────────────────────────────────────────────────
+    {"id": "F35FC838-1CFE-49D1-A8CA-CF7401F9C444", "name": "Flats"},     # Flats
+    # ── Boots ────────────────────────────────────────────────────────────────
+    {"id": "1988B912-7A18-4ED2-B1E1-61ED290A0E82", "name": "Boots"},     # Woman Boots
+    # ── Sneakers ─────────────────────────────────────────────────────────────
+    {"id": "1B559D30-B370-4C8E-8CFD-1E1BC47E217F", "name": "Sneakers"},  # Vulcanize Shoes
+    # ── Sandals ──────────────────────────────────────────────────────────────
+    {"id": "AAB54987-4E92-40C7-B0F5-5E814C1E6980", "name": "Sandals"},   # Woman Sandals
+    # ── Mules ────────────────────────────────────────────────────────────────
+    {"id": "8F756420-4840-474E-B2D6-6725ED219970", "name": "Mules"},     # Woman Slippers
+    # ── Tote Bags ────────────────────────────────────────────────────────────
+    {"id": "8F3ADC01-68FE-4CBE-BB1D-0DE42A730749", "name": "Tote Bags"}, # Totes
+    # ── Crossbody Bags ───────────────────────────────────────────────────────
+    {"id": "2410301013451614000",                   "name": "Crossbody Bags"}, # Women's Crossbody
+    # ── Clutches ─────────────────────────────────────────────────────────────
+    {"id": "CB7C7348-41DC-4AA5-9BD0-CC2D555899BB", "name": "Clutches"},  # Clutches
+    {"id": "33AFFE07-CC46-4557-9FD9-27CC9975BEED", "name": "Clutches"},  # Evening Bags
+    # ── Shoulder Bags ────────────────────────────────────────────────────────
+    {"id": "7DC7FA45-C8E1-4A2E-BA84-B81FB9CA2815", "name": "Shoulder Bags"}, # Shoulder Bags
+    {"id": "78BCE010-8E22-416F-82E2-6E5C6AE0CECE", "name": "Shoulder Bags"}, # Fashion Backpacks
+    # ── Jewellery ────────────────────────────────────────────────────────────
+    {"id": "95D9F317-1DB3-4E42-A031-02223215B9C5", "name": "Jewellery"}, # Necklaces & Pendants
+    {"id": "D28405AE-66C6-42E6-BFF0-D6FDCB5C083C", "name": "Jewellery"}, # Earrings
+    {"id": "0615F8DB-C10F-4BEF-892B-1C5B04268938", "name": "Jewellery"}, # Bracelets & Bangles
+    {"id": "56B4F8B6-8600-4A18-913E-53F2F693EC2C", "name": "Jewellery"}, # Rings
+    {"id": "552F095A-904C-40E4-A43B-0CD1CE15D29F", "name": "Jewellery"}, # 925 Silver Jewelry
+    {"id": "84ED4B7F-D7C3-412F-AF18-04F25C91985C", "name": "Jewellery"}, # Pearls Jewelry
+    {"id": "D7CE9827-F50A-4B07-84BF-1BFE44188A1C", "name": "Jewellery"}, # Fine Earrings
+    {"id": "FCE034F6-A2BF-47E3-852F-FA9F67F904B2", "name": "Jewellery"}, # Engagement Rings
+    {"id": "04B879BE-79E7-4CB9-B493-B03F628B5130", "name": "Jewellery"}, # Bridal Jewelry Sets
+    {"id": "A044AC0D-BA3B-4967-8300-1BD57F00048E", "name": "Jewellery"}, # Women's Dress Watches
+    {"id": "F40CB152-1391-4CA9-9BAE-0316DA2D3D2B", "name": "Jewellery"}, # Women's Bracelet Watches
+    # ── Scarves & Accessories ────────────────────────────────────────────────
+    {"id": "0DC4DF6F-4EC5-47DF-B20D-863ADF69319F", "name": "Scarves"},   # Scarves & Wraps
+    {"id": "1E4A1FD7-738C-4AEF-9793-BDE062158BD6", "name": "Accessories"}, # Belts
+    {"id": "F72DD534-E394-4958-B591-149C488648D7", "name": "Accessories"}, # Woman Hats & Caps
+    # ── Skincare ─────────────────────────────────────────────────────────────
+    {"id": "EDE3FAD9-0E6C-4F7C-9016-A2299469AA7C", "name": "Skincare"},  # Facial Care
+    {"id": "B6A8B971-793B-4F9E-AA56-3A5D12F63827", "name": "Skincare"},  # Sun Care
+    {"id": "E0238E88-0C63-427F-812E-BA1FCE4C67B4", "name": "Skincare"},  # Body Care
+    {"id": "88AF62DE-5586-40E4-A287-864523D9AE50", "name": "Skincare"},  # Face Masks
+    # ── Makeup ───────────────────────────────────────────────────────────────
+    {"id": "B68DF53F-4DD5-4659-A530-66D414CF2147", "name": "Makeup"},    # Lipstick
+    {"id": "8FB2C16C-4C1B-4B5A-89F8-BC30FB2C442A", "name": "Makeup"},    # Eyeshadow
+    {"id": "426792A7-4906-403D-AD17-8293AFF00E66", "name": "Makeup"},    # Makeup Sets
+    {"id": "A30E8F55-DC2C-4842-9372-91B96DEFDCC2", "name": "Makeup"},    # Makeup Brushes
+    {"id": "E31E5996-7B86-4FEC-B929-9AEB11E76853", "name": "Makeup"},    # False Eyelashes
+    {"id": "2502140902411611700",                   "name": "Makeup"},    # Eyebrow Pencil
+    # ── Hair ─────────────────────────────────────────────────────────────────
+    {"id": "2502140903111619100",                   "name": "Hair"},      # Hair Accessories
+    {"id": "44733589-BEE4-448D-86F9-A1B5A9710C79", "name": "Hair"},      # Human Hair Wigs
+    {"id": "DB81767B-2083-4C66-8E8D-1A0D897ABA7C", "name": "Hair"},      # Synthetic Wigs
+    {"id": "6ADDD8E4-4141-4B5A-9A85-6D87FED7799C", "name": "Hair"},      # Synthetic Hair Pieces
+    {"id": "B30591BD-0353-4791-8BF6-F4876CC7F9B1", "name": "Hair"},      # Hair Braids
 ]
+
+# Keep for fix-categories endpoint compatibility
+WOMENS_CATEGORY_IDS = WOMENS_LEAF_CATEGORIES
 
 
 @router.get("/products")
@@ -392,8 +468,9 @@ def import_womens_curated(
     db: Session = Depends(get_db),
 ):
     """
-    Import 300 products per women's category (3 pages × 100), sorted by
-    highest price descending, with 4x markup applied. ~5,100 products total.
+    Import 50 products per leaf CJ category using exact leaf IDs.
+    Products are tagged with their correct Covora category name.
+    ~67 leaf categories × 50 = ~3,350 correctly categorised products.
     """
     imported_count = 0
     skipped_count = 0
@@ -405,13 +482,13 @@ def import_womens_curated(
     try:
         token = _get_access_token()
 
-        for cat in WOMENS_CATEGORY_IDS:
+        for cat in WOMENS_LEAF_CATEGORIES:
             cat_imported = 0
             cat_skipped = 0
             cat_failed = 0
 
-            # 3 pages × 100 = 300 products per category, highest price first
-            for page in range(1, 4):
+            # 50 products per leaf category, highest price first
+            for page in range(1, 2):
                 try:
                     imp, skip, fail, errs = _import_page_by_category_id(
                         token=token,
@@ -420,7 +497,7 @@ def import_womens_curated(
                         category_id=cat["id"],
                         category_label=cat["name"],
                         page_num=page,
-                        page_size=100,
+                        page_size=50,
                     )
                     cat_imported += imp
                     cat_skipped += skip
