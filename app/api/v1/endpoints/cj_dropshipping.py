@@ -462,6 +462,59 @@ def clean_inventory(
     return {"deleted": deleted, "checked": len(products)}
 
 
+@router.delete("/purge-wrong-items")
+def purge_wrong_items(
+    commerce_store_id: int = Query(...),
+    db: Session = Depends(get_db),
+):
+    """
+    Hard-delete non-fashion / men's / serving-ware items using SQL ILIKE patterns.
+    Catches items that slipped through the Python blocklist (e.g. before it was expanded).
+    Safe to run repeatedly.
+    """
+    from sqlalchemy import or_
+
+    # SQL ILIKE patterns — each catches a class of wrong products
+    bad_patterns = [
+        # Silver serving ware (CJ 925-Silver category includes these)
+        "%serving pot%", "%beverage dispenser%", "%tea cup%", "%tea vessel%",
+        "%tea caddy%", "%tea tray%", "%silver bowl%", "%silver vase%",
+        "%silver jar%", "%silver platter%", "%silver pitcher%", "%serving bowl%",
+        "%decorative vase%", "%ornate bowl%", "%enamel cup%", "%gourd vase%",
+        "%ceramic mug%", "%sugar bowl%", "%enamel bowl%", "%silver pot%",
+        "%incense burner%", "%candle holder%", "%figurine%", "%wind chime%",
+        "%teapot%", "%tea pot%", "%tea set%",
+        # Kitchen / cooking
+        "%air fryer%", "%frying pan%", "%rice cooker%", "%slow cooker%",
+        "%pressure cooker%", "%food processor%", "%cookware%", "%saucepan%",
+        "%baking tray%", "%baking mold%", "%chopping board%", "%knife set%",
+        # Tech wearables
+        "%smartwatch%", "%smart watch%", "%fitness tracker%", "%activity tracker%",
+        # Men's items (note: AND NOT women — handled below)
+        "%men's suit%", "%men's shirt%", "%men's trouser%", "%men's jacket%",
+        "%men's hoodie%", "%men's jeans%", "%men's sneaker%", "%men's shoe%",
+    ]
+
+    filters = or_(*[Product.name.ilike(p) for p in bad_patterns])
+    candidates = db.query(Product).filter(
+        Product.commerce_store_id == commerce_store_id,
+        Product.source == "cj",
+        filters,
+    ).all()
+
+    deleted = 0
+    for p in candidates:
+        # Extra safety: keep if the name also says women/female (unisex items)
+        lower = (p.name or "").lower()
+        if any(w in lower for w in ("women", "woman", "female", "ladies")):
+            continue
+        db.delete(p)
+        deleted += 1
+
+    db.commit()
+    return {"deleted": deleted, "checked": len(candidates)}
+
+
 def _import_page_by_category_id(
     token: str,
     commerce_store_id: int,
