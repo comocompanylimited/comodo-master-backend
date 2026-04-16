@@ -506,16 +506,39 @@ def purge_wrong_items(
     ).all()
 
     deleted = 0
+    # Tech/non-fashion items that mention "Men Women" are NOT real fashion items
+    TECH_OVERRIDES = (
+        "smartwatch", "smart watch", "fitness tracker", "heart rate", "activity tracker",
+        "platter", "serving dish", "teapot", "tea pot",
+    )
     for p in candidates:
-        # Extra safety: keep if the name also says women/female (unisex items)
         lower = (p.name or "").lower()
-        if any(w in lower for w in ("women", "woman", "female", "ladies")):
+        # Safety: keep if it mentions women — UNLESS it's clearly non-fashion (tech/serveware)
+        is_clearly_non_fashion = any(t in lower for t in TECH_OVERRIDES)
+        if not is_clearly_non_fashion and any(w in lower for w in ("women", "woman", "female", "ladies")):
             continue
         db.delete(p)
         deleted += 1
 
     db.commit()
     return {"deleted": deleted, "checked": len(candidates)}
+
+
+@router.delete("/delete-products")
+def delete_products_by_ids(
+    ids: str = Query(..., description="Comma-separated product IDs to delete"),
+    db: Session = Depends(get_db),
+):
+    """Delete specific products by ID — use for manual cleanup of individual items."""
+    id_list = [int(x.strip()) for x in ids.split(",") if x.strip().isdigit()]
+    deleted = 0
+    for pid in id_list:
+        p = db.query(Product).filter(Product.id == pid).first()
+        if p:
+            db.delete(p)
+            deleted += 1
+    db.commit()
+    return {"deleted": deleted, "requested": len(id_list)}
 
 
 def _import_page_by_category_id(
