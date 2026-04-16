@@ -484,9 +484,10 @@ def clean_inventory(
     Safe to run repeatedly — only deletes products that fail the fashion filter.
     """
     from app.models.product import ProductImage
+    from sqlalchemy import or_ as sql_or
     products = db.query(Product).filter(
         Product.commerce_store_id == commerce_store_id,
-        Product.source == "cj",
+        sql_or(Product.source == "cj", Product.source == None),
     ).all()
 
     deleted = 0
@@ -547,9 +548,10 @@ def purge_wrong_items(
     ]
 
     filters = or_(*[Product.name.ilike(p) for p in bad_patterns])
+    # Include products with source="cj" OR no source set (older imports)
     candidates = db.query(Product).filter(
         Product.commerce_store_id == commerce_store_id,
-        Product.source == "cj",
+        or_(Product.source == "cj", Product.source == None),
         filters,
     ).all()
 
