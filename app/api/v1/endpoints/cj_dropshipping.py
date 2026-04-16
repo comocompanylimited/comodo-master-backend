@@ -484,6 +484,9 @@ def purge_wrong_items(
         "%ceramic mug%", "%sugar bowl%", "%enamel bowl%", "%silver pot%",
         "%incense burner%", "%candle holder%", "%figurine%", "%wind chime%",
         "%teapot%", "%tea pot%", "%tea set%",
+        "%platter%", "%serving dish%", "%trinket box%",
+        "%ornamental%", "%decorative plate%", "%enamel box%",
+        "%swimming fish%", "%carp%",
         # Kitchen / cooking
         "%air fryer%", "%frying pan%", "%rice cooker%", "%slow cooker%",
         "%pressure cooker%", "%food processor%", "%cookware%", "%saucepan%",
