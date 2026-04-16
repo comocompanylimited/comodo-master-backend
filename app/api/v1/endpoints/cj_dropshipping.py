@@ -401,6 +401,17 @@ _NON_FASHION_KEYWORDS = {
     "men's sneaker", "men's shoe", "men's boot", "men's wallet",
     "men's watch", "men's underwear", "men's sock",
     "for men", "for him", "his and hers",
+    # Silver serving ware / decorative objects (appear in CJ's 925 Silver category)
+    "serving pot", "beverage dispenser", "tea cup", "tea vessel", "teacup",
+    "tea caddy", "tea tray", "silver bowl", "silver vase", "silver jar",
+    "silver platter", "silver pitcher", "silver plate", "serving bowl",
+    "decorative vase", "decorative bowl", "ornate bowl", "enamel cup",
+    "gourd vase", "ceramic mug", "sugar bowl", "creamer set",
+    "incense burner", "candle holder", "figurine", "statue", "ornament",
+    "wind chime", "silver spoon", "chopstick", "chopsticks",
+    # Tech wearables (non-fashion)
+    "smartwatch", "smart watch", "fitness tracker", "activity tracker",
+    "heart rate monitor", "step counter", "gps watch",
 }
 
 # These words flag a men's product when found in the name,
