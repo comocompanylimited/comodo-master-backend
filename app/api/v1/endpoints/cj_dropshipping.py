@@ -365,19 +365,25 @@ def clear_cj_products(
 # Keywords that definitively identify non-fashion / wrong-category products.
 # If a product name contains any of these we skip it at import time.
 _NON_FASHION_KEYWORDS = {
-    # Kitchen / Appliances
-    "air fryer", "fryer", "oven", "microwave", "blender", "toaster", "kettle",
+    # Kitchen / Cookware / Teaware
+    "air fryer", "fryer", "oven", "microwave", "blender", "toaster",
     "coffee maker", "rice cooker", "slow cooker", "pressure cooker", "food processor",
     "mixer", "juicer", "dishwasher", "refrigerator", "washing machine",
+    "teapot", "tea pot", "tea set", "kettle", "coffee pot", "coffee cup",
+    "mug set", "cup set", "saucepan", "frying pan", "wok ", "cookware",
+    "casserole", "baking tray", "baking mold", "cake mold", "pot set",
+    "utensil", "spatula", "colander", "chopping board", "knife set",
+    "water bottle", "thermos", "flask", "lunch box", "chopstick",
     # Electronics
     "laptop", "computer", "tablet", "phone case", "charger", "cable", "earphone",
     "earbuds", "headphone", "speaker", "bluetooth", "wifi", "router", "keyboard",
-    "mouse pad", "webcam", "projector", "drone", "camera lens",
+    "mouse pad", "webcam", "projector", "drone", "camera lens", "power bank",
+    "led light", "night light", "table lamp", "smart watch band",
     # Tools / Hardware
     "drill", "screwdriver", "wrench", "hammer", "saw", "toolbox", "ladder",
     # Pets / Garden / Automotive
-    "dog", "cat food", "pet collar", "bird cage", "plant pot", "garden hose",
-    "car seat", "steering wheel", "car cover", "tyre", "tire",
+    "dog collar", "dog lead", "dog harness", "cat food", "pet collar", "bird cage",
+    "plant pot", "garden hose", "car seat", "steering wheel", "car cover",
     # Health / Medical (non-beauty)
     "blood pressure", "glucose meter", "thermometer", "pulse oximeter",
     "nebulizer", "cpap", "wheelchair", "crutch", "hearing aid",
@@ -385,16 +391,64 @@ _NON_FASHION_KEYWORDS = {
     "lego", "toy car", "board game", "puzzle", "doll house", "baby formula",
     "baby bottle", "breast pump", "stroller",
     # Food / Supplements
-    "protein powder", "vitamin", "supplement", "collagen powder", "energy drink",
-    "snack", "chocolate", "coffee bean", "tea bag",
+    "protein powder", "vitamin supplement", "collagen powder", "energy drink",
+    "snack", "chocolate bar", "coffee bean", "tea bag",
     # Office / Stationery
-    "notebook", "pen ", "pencil", "stapler", "ink cartridge",
+    "sticky note", "stapler", "ink cartridge",
+    # Men's items (not "women's" — those are fine)
+    "men's suit", "men's shirt", "men's trouser", "men's jacket",
+    "men's hoodie", "men's jeans", "men's short", "men's coat",
+    "men's sneaker", "men's shoe", "men's boot", "men's wallet",
+    "men's watch", "men's underwear", "men's sock",
+    "for men", "for him", "his and hers",
 }
+
+# These words flag a men's product when found in the name,
+# UNLESS the name also contains "women" or "woman" or "female".
+_MENS_SIGNALS = [
+    "men's", "mens ", "men ",
+    "male ", "male fashion", "male clothing",
+    "boy's ", "boys ", "boys'",
+    "gentleman", "masculine",
+]
 
 def _is_non_fashion(name: str) -> bool:
     """Return True if the product name contains a non-fashion keyword."""
     lower = name.lower()
     return any(kw in lower for kw in _NON_FASHION_KEYWORDS)
+
+def _is_mens_product(name: str) -> bool:
+    """Return True if the product is clearly men's-only (and not unisex women's)."""
+    lower = name.lower()
+    # If it explicitly mentions women/female it stays
+    if any(w in lower for w in ("women", "woman", "female", "ladies", "lady", "girls", "girl")):
+        return False
+    return any(sig in lower for sig in _MENS_SIGNALS)
+
+
+@router.post("/clean-inventory")
+def clean_inventory(
+    commerce_store_id: int = Query(...),
+    db: Session = Depends(get_db),
+):
+    """
+    Purge men's products and non-fashion items from existing inventory.
+    Safe to run repeatedly — only deletes products that fail the fashion filter.
+    """
+    from app.models.product import ProductImage
+    products = db.query(Product).filter(
+        Product.commerce_store_id == commerce_store_id,
+        Product.source == "cj",
+    ).all()
+
+    deleted = 0
+    for p in products:
+        if _is_mens_product(p.name) or _is_non_fashion(p.name):
+            db.delete(p)
+            deleted += 1
+
+    db.commit()
+    return {"deleted": deleted, "checked": len(products)}
 
 
 def _import_page_by_category_id(
@@ -437,7 +491,7 @@ def _import_page_by_category_id(
                 continue
 
             name = str(p.get("productNameEn") or p.get("productName") or sku).strip()[:499]
-            if _is_non_fashion(name):
+            if _is_non_fashion(name) or _is_mens_product(name):
                 skipped += 1
                 continue
             slug = _slugify(name) or sku.lower()
