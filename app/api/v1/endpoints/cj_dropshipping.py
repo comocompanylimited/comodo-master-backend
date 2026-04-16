@@ -9,7 +9,10 @@ from app.models.business import Business
 
 router = APIRouter()
 
-PRICE_MARKUP = 4.0  # 4x markup on all CJ prices
+def _apply_markup(raw_price: float) -> float:
+    """Under £20 CJ price → 4x markup. Over £20 → 2.4x markup."""
+    markup = 4.0 if raw_price < 20.0 else 2.4
+    return round(raw_price * markup, 2)
 
 # Women's category IDs (second-level) from CJ Dropshipping taxonomy
 WOMENS_CATEGORY_IDS = [
@@ -185,9 +188,8 @@ def _import_page_by_category_id(
                 slug = f"{base_slug}-{i}"
                 i += 1
 
-            # Apply 4x markup
             raw_price = _to_float(p.get("sellPrice"))
-            price = round(raw_price * PRICE_MARKUP, 2)
+            price = _apply_markup(raw_price)
 
             weight = _to_float(p.get("productWeight"))
 
@@ -295,7 +297,7 @@ def import_womens_curated(
         "imported_count": imported_count,
         "skipped_count": skipped_count,
         "failed_count": failed_count,
-        "markup_applied": f"{PRICE_MARKUP}x",
+        "markup_applied": "4x under £20, 2.4x over £20",
         "categories": category_results,
         "errors": all_errors[:20],
         "fatal_error": fatal_error,
@@ -355,7 +357,7 @@ def import_cj_products(
                     i += 1
 
                 raw_price = _to_float(p.get("sellPrice"))
-                price = round(raw_price * PRICE_MARKUP, 2)
+                price = _apply_markup(raw_price)
 
                 product = Product(
                     commerce_store_id=commerce_store_id,
