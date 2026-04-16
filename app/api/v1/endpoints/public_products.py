@@ -22,17 +22,30 @@ def list_public_products(
     brand_id: Optional[int] = None,
     featured: Optional[bool] = None,
     search: Optional[str] = None,
+    category: Optional[str] = Query(None, description="Filter by CJ category name (short_description)"),
+    categories: Optional[str] = Query(None, description="Comma-separated list of CJ category names"),
     db: Session = Depends(get_db),
 ):
     store_id = commerce_store_id or DEFAULT_STORE_ID
     skip, limit = pagination_params(page, page_size)
+
+    # Parse multi-category filter
+    short_description_in = None
+    short_description = None
+    if categories:
+        short_description_in = [c.strip() for c in categories.split(",") if c.strip()]
+    elif category:
+        short_description = category
+
     total = crud_product.count_filtered(
         db, commerce_store_id=store_id, category_id=category_id,
         brand_id=brand_id, status="active", featured=featured, search=search,
+        short_description=short_description, short_description_in=short_description_in,
     )
     items = crud_product.get_multi_filtered(
         db, commerce_store_id=store_id, category_id=category_id,
         brand_id=brand_id, status="active", featured=featured, search=search,
+        short_description=short_description, short_description_in=short_description_in,
         skip=skip, limit=limit,
     )
     return PaginatedResponse(total=total, page=page, page_size=limit, results=items)

@@ -29,6 +29,8 @@ class CRUDProduct(CRUDBase[Product, ProductCreate, ProductUpdate]):
         status: Optional[str] = None,
         featured: Optional[bool] = None,
         search: Optional[str] = None,
+        short_description: Optional[str] = None,
+        short_description_in: Optional[List[str]] = None,
         skip: int = 0,
         limit: int = 50,
     ) -> List[Product]:
@@ -43,7 +45,11 @@ class CRUDProduct(CRUDBase[Product, ProductCreate, ProductUpdate]):
             q = q.filter(Product.featured == featured)
         if search:
             q = q.filter(Product.name.ilike(f"%{search}%"))
-        return q.order_by(Product.created_at.desc()).offset(skip).limit(limit).all()
+        if short_description:
+            q = q.filter(Product.short_description == short_description)
+        if short_description_in:
+            q = q.filter(Product.short_description.in_(short_description_in))
+        return q.order_by(Product.price.desc()).offset(skip).limit(limit).all()
 
     def count_filtered(
         self,
@@ -55,6 +61,8 @@ class CRUDProduct(CRUDBase[Product, ProductCreate, ProductUpdate]):
         status: Optional[str] = None,
         featured: Optional[bool] = None,
         search: Optional[str] = None,
+        short_description: Optional[str] = None,
+        short_description_in: Optional[List[str]] = None,
     ) -> int:
         q = db.query(Product).filter(Product.commerce_store_id == commerce_store_id)
         if category_id is not None:
@@ -67,6 +75,10 @@ class CRUDProduct(CRUDBase[Product, ProductCreate, ProductUpdate]):
             q = q.filter(Product.featured == featured)
         if search:
             q = q.filter(Product.name.ilike(f"%{search}%"))
+        if short_description:
+            q = q.filter(Product.short_description == short_description)
+        if short_description_in:
+            q = q.filter(Product.short_description.in_(short_description_in))
         return q.count()
 
     def count_low_stock(self, db: Session, *, commerce_store_id: int) -> int:
