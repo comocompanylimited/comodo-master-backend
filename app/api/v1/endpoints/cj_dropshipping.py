@@ -414,13 +414,50 @@ _NON_FASHION_KEYWORDS = {
     "heart rate monitor", "step counter", "gps watch",
 }
 
-# These words flag a men's product when found in the name,
-# UNLESS the name also contains "women" or "woman" or "female".
+# Explicit men's labels in the product name.
+# We check AFTER confirming no women/female/ladies keyword is present.
 _MENS_SIGNALS = [
-    "men's", "mens ", "men ",
+    "men's", "mens ", " for men", " men ",
     "male ", "male fashion", "male clothing",
     "boy's ", "boys ", "boys'",
     "gentleman", "masculine",
+    # Men's-specific clothing items (rarely/never used in women's fashion names on CJ)
+    "swim trunks", "swim trunk", "board shorts", "board short",
+    "cargo shorts", "cargo pant", "cargo trouser",
+    "polo shirt", "polo tee",
+    "boxer short", "boxer brief", "jockstrap",
+    "vest and shorts", "vest and ankle", "vest and trouser", "vest and pant",
+    "shirt and shorts", "shirt and trouser", "shirt and pant",
+    "sleeveless vest and", "hoodie and short",
+    "ankle-cuff short", "ankle cuff short",
+    "linen vest short", "linen short set", "linen shirt set",
+    "hawaiian shirt", "hawaiian print shirt",
+    "muscle tee", "muscle shirt", "gym vest",
+    "henley shirt", "henley tee",
+    "button down shirt set", "beach shirt set",
+    # Men's shoe types not in women's
+    "oxford shoe", "derby shoe", "monk strap",
+    "loafer for men", "dress shoe for men",
+]
+
+# Broad SQL ILIKE patterns for catching men's items in the DB.
+# Used by purge-wrong-items endpoint.
+MENS_SQL_PATTERNS = [
+    "%men's%", "%mens %", "% for men%", "% men %",
+    "%male %", "%male fashion%",
+    "%gentleman%", "%masculine%",
+    "%swim trunks%", "%board shorts%", "%board short%",
+    "%cargo shorts%", "%cargo pant%", "%cargo trouser%",
+    "%polo shirt%", "%polo tee%",
+    "%boxer short%", "%boxer brief%",
+    "%vest and shorts%", "%vest and ankle%", "%vest and trouser%", "%vest and pant%",
+    "%shirt and shorts%", "%shirt and trouser%",
+    "%sleeveless vest and%",
+    "%ankle-cuff short%", "%ankle cuff short%",
+    "%linen vest short%", "%linen short set%",
+    "%hawaiian shirt%",
+    "%muscle tee%", "%muscle shirt%", "%gym vest%",
+    "%henley shirt%", "%henley tee%",
 ]
 
 def _is_non_fashion(name: str) -> bool:
@@ -476,7 +513,7 @@ def purge_wrong_items(
 
     # SQL ILIKE patterns — each catches a class of wrong products
     bad_patterns = [
-        # Silver serving ware (CJ 925-Silver category includes these)
+        # Silver serving ware
         "%serving pot%", "%beverage dispenser%", "%tea cup%", "%tea vessel%",
         "%tea caddy%", "%tea tray%", "%silver bowl%", "%silver vase%",
         "%silver jar%", "%silver platter%", "%silver pitcher%", "%serving bowl%",
@@ -486,16 +523,27 @@ def purge_wrong_items(
         "%teapot%", "%tea pot%", "%tea set%",
         "%platter%", "%serving dish%", "%trinket box%",
         "%ornamental%", "%decorative plate%", "%enamel box%",
-        "%swimming fish%", "%carp%",
-        # Kitchen / cooking
+        # Kitchen
         "%air fryer%", "%frying pan%", "%rice cooker%", "%slow cooker%",
         "%pressure cooker%", "%food processor%", "%cookware%", "%saucepan%",
-        "%baking tray%", "%baking mold%", "%chopping board%", "%knife set%",
         # Tech wearables
         "%smartwatch%", "%smart watch%", "%fitness tracker%", "%activity tracker%",
-        # Men's items (note: AND NOT women — handled below)
+        # Men's — explicit labels
         "%men's suit%", "%men's shirt%", "%men's trouser%", "%men's jacket%",
         "%men's hoodie%", "%men's jeans%", "%men's sneaker%", "%men's shoe%",
+        "%men's short%", "%men's vest%", "%men's top%", "%men's coat%",
+        "% for men%", "%male fashion%", "%male clothing%", "%gentleman%",
+        # Men's — clothing patterns (generic names, no "men's" label)
+        "%swim trunks%", "%board shorts%", "%board short%",
+        "%cargo shorts%", "%cargo pant%",
+        "%polo shirt%", "%polo tee%",
+        "%boxer short%", "%boxer brief%",
+        "%vest and shorts%", "%vest and ankle%", "%vest and pant%",
+        "%shirt and shorts%", "%sleeveless vest and%",
+        "%ankle-cuff short%", "%ankle cuff short%",
+        "%linen vest short%", "%linen short set%",
+        "%hawaiian shirt%", "%muscle tee%", "%muscle shirt%",
+        "%henley shirt%", "%henley tee%",
     ]
 
     filters = or_(*[Product.name.ilike(p) for p in bad_patterns])
@@ -506,16 +554,21 @@ def purge_wrong_items(
     ).all()
 
     deleted = 0
-    # Tech/non-fashion items that mention "Men Women" are NOT real fashion items
-    TECH_OVERRIDES = (
+    # Items matching these are always deleted even if "women" appears (e.g. "Men Women" smartwatch)
+    FORCE_DELETE_SIGNALS = (
         "smartwatch", "smart watch", "fitness tracker", "heart rate", "activity tracker",
         "platter", "serving dish", "teapot", "tea pot",
+        "swim trunks", "board shorts", "cargo shorts", "cargo pant",
+        "polo shirt", "polo tee", "boxer short", "boxer brief",
+        "vest and shorts", "vest and ankle", "sleeveless vest and",
+        "ankle-cuff short", "ankle cuff short", "hawaiian shirt",
+        "muscle tee", "muscle shirt", "henley shirt",
     )
     for p in candidates:
         lower = (p.name or "").lower()
-        # Safety: keep if it mentions women — UNLESS it's clearly non-fashion (tech/serveware)
-        is_clearly_non_fashion = any(t in lower for t in TECH_OVERRIDES)
-        if not is_clearly_non_fashion and any(w in lower for w in ("women", "woman", "female", "ladies")):
+        is_force_delete = any(t in lower for t in FORCE_DELETE_SIGNALS)
+        # Keep genuine women's items unless they're in the force-delete list
+        if not is_force_delete and any(w in lower for w in ("women", "woman", "female", "ladies")):
             continue
         db.delete(p)
         deleted += 1
