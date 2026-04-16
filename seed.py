@@ -72,17 +72,21 @@ def seed():
         db.add(app)
         db.flush()
 
+        R2 = "https://pub-1d6c9d49352543bd9274a49abd4df1f95.r2.dev"
         categories_data = [
-            ("Dresses", "dresses"),
-            ("Bags", "bags"),
-            ("Shoes", "shoes"),
-            ("Jewellery", "jewellery"),
-            ("Accessories", "accessories"),
-            ("Tops", "tops"),
+            ("Dresses",     "dresses",     f"{R2}/womenindress.png"),
+            ("Bags",        "bags",        f"{R2}/bags.png"),
+            ("Shoes",       "shoes",       f"{R2}/shoesandbags.png"),
+            ("Knitwear",    "knitwear",    f"{R2}/womensknitwear.png"),
+            ("Outerwear",   "outerwear",   f"{R2}/outer%20wear.png"),
+            ("Sets",        "sets",        f"{R2}/Sets.png"),
+            ("Tops",        "tops",        f"{R2}/womensknitwear.png"),
+            ("Jewellery",   "jewellery",   None),
+            ("Accessories", "accessories", None),
         ]
         cats = {}
-        for name, slug in categories_data:
-            cat = Category(commerce_store_id=store.id, name=name, slug=slug, status="active")
+        for name, slug, image_url in categories_data:
+            cat = Category(commerce_store_id=store.id, name=name, slug=slug, image_url=image_url, status="active")
             db.add(cat)
             db.flush()
             cats[slug] = cat

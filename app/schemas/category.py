@@ -8,6 +8,7 @@ class CategoryBase(BaseModel):
     commerce_store_id: int
     slug: str
     description: Optional[str] = None
+    image_url: Optional[str] = None
     parent_id: Optional[int] = None
     status: str = "active"
 
@@ -20,6 +21,7 @@ class CategoryUpdate(BaseModel):
     name: Optional[str] = None
     slug: Optional[str] = None
     description: Optional[str] = None
+    image_url: Optional[str] = None
     parent_id: Optional[int] = None
     status: Optional[str] = None
 
